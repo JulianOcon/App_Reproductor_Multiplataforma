@@ -1,18 +1,20 @@
 import 'package:flutter/material.dart';
 import 'screens/login_screen.dart';
-import 'theme/theme.dart';
 
 void main() {
-  runApp(MyApp());
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Reproductor de Videos',
-      theme: appTheme,
-      home: LoginScreen(), // Puedes cambiar esta referencia a otra pantalla después
+      title: 'Reproductor',
+      theme: ThemeData.dark(),
+      home: const LoginScreen(),
+      debugShowCheckedModeBanner: false,
     );
   }
 }
