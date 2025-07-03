@@ -2,63 +2,80 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
-class ApiService {
-  static const String _baseUrl = 'http://192.168.1.30:3000';
+import '../models/video.dart';
+import '../models/mp3.dart';
 
-  static Future<bool> login(String usuario, String password, String deviceHash) async {
-    final url = Uri.parse('$_baseUrl/api/login');
-    final response = await http.post(
-      url,
+class ApiService {
+  static const String _base = 'http://192.168.1.7:3000/api';
+
+  /* ─────────── Helpers ─────────── */
+
+  static Future<SharedPreferences> _prefs() =>
+      SharedPreferences.getInstance();
+
+  static Future<String> _token() async =>
+      (await _prefs()).getString('token') ?? '';
+
+  static Map<String, String> _authHeaders(String token) =>
+      {'Authorization': 'Bearer $token'};
+
+  /* ─────────── Login ─────────── */
+
+  static Future<bool> login(
+      String usuario, String contrasena, String dispositivoHash) async {
+    final res = await http.post(
+      Uri.parse('$_base/login'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
-        'usuario': usuario,'contrasena': password,
-        'device_hash': deviceHash,
+        'usuario': usuario,
+        'contrasena': contrasena,
+        'dispositivo_hash': dispositivoHash,
       }),
     );
 
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('token', data['token']);
-      await prefs.setString('nombre', data['nombre']);
-      await prefs.setInt('id_usuario', data['id_usuario']);
-      return true;
-    } else {
-      return false;
-    }
+    if (res.statusCode != 200) return false;
+    final data = jsonDecode(res.body);
+    if (data['success'] != true) return false;
+
+    final sp = await _prefs();
+    await sp.setString('token', data['token']);
+    await sp.setString('usuario', data['usuario']);
+    await sp.setString('tipo_usuario', data['tipo_usuario']);
+    return true;
   }
 
-  static Future<List<dynamic>> fetchMp3List() async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('token') ?? '';
-    final url = Uri.parse('$_baseUrl/api/mp3');
-
-    final response = await http.get(
-      url,
-      headers: {'Authorization': 'Beaner $token'},
-    );
-
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body);
-    } else {
-      throw Exception('Error al obtener Mp3: ${response.statusCode}');
-    }
+  static Future<void> logout() async {
+    final sp = await _prefs();
+    await sp.remove('token');
+    await sp.remove('usuario');
+    await sp.remove('tipo_usuario');
   }
 
-  static Future<List<dynamic>> fetchVideoList() async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('token') ?? '';
-    final url = Uri.parse('$_baseUrl/api/videos');
+  /* ─────────── Videos ─────────── */
 
-    final response = await http.get(
-      url,
-      headers: {'Authorization': 'Bearer $token'},
+  static Future<List<VideoItem>> getAllVideos() async {
+    final res = await http.get(
+      Uri.parse('$_base/videos'),
+      headers: _authHeaders(await _token()),
     );
-
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body);
-    } else {
-      throw Exception('Error al obtener videos: ${response.statusCode}');
+    if (res.statusCode != 200) {
+      throw Exception('Error ${res.statusCode} al obtener videos');
     }
+    final List<dynamic> jsonList = jsonDecode(res.body);
+    return jsonList.map((e) => VideoItem.fromJson(e)).toList();
+  }
+
+  /* ─────────── MP3 ─────────── */
+
+  static Future<List<Mp3Item>> getAllMp3() async {
+    final res = await http.get(
+      Uri.parse('$_base/mp3'),
+      headers: _authHeaders(await _token()),
+    );
+    if (res.statusCode != 200) {
+      throw Exception('Error ${res.statusCode} al obtener MP3');
+    }
+    final List<dynamic> jsonList = jsonDecode(res.body);
+    return jsonList.map((e) => Mp3Item.fromJson(e)).toList();
   }
 }

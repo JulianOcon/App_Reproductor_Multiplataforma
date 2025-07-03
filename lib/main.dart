@@ -1,5 +1,5 @@
-import 'package:app_reproductor_multiplataforma/theme/colors.dart';
 import 'package:flutter/material.dart';
+import 'theme/theme.dart';
 
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
@@ -14,19 +14,13 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      theme: ThemeData.dark().copyWith(
-        scaffoldBackgroundColor: AppColors.background,
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            textStyle: const TextStyle(fontWeight: FontWeight.bold),
-          ),
-        ),
-      ),
+      title: 'Reproductor Multimedia',
+      theme: AppTheme.lightTheme, // ← ¡Ahora existe!
       initialRoute: '/',
       routes: {
-        '/':      (_) => const LoginScreen(),
+        '/':        (_) => const LoginScreen(),
         '/register': (_) => const RegisterScreen(),
-        '/home':    (_) => const HomeScreen(),
+        '/home':     (_) => const HomeScreen(),
       },
     );
   }

@@ -24,18 +24,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   InputDecoration _decoration(String label) => InputDecoration(
     labelText: label,
-    labelStyle: const TextStyle(color: AppColors.labelColor),
+    labelStyle: TextStyle(color: AppColors.labelColor),
     filled: true,
     fillColor: AppColors.fieldFill,
     border: const OutlineInputBorder(),
   );
+
 
   Future<void> _registrar() async {
     setState(() { _isLoading = true; _errorMsg = ''; });
 
     try {
       final res = await http.post(
-        Uri.parse('http://192.168.1.2:3000/api/register'),
+        Uri.parse('http://192.168.1.7:3000/api/register'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'nombre'      : _nombreCtrl.text.trim(),
