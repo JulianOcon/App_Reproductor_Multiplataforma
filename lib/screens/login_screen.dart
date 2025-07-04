@@ -1,152 +1,96 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-
+import '../core/app_config.dart';
+import '../services/api_service.dart';
 import '../theme/colors.dart';
 import '../utils/device_utils.dart';
 import 'register_screen.dart';
+
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
-
-  @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  @override State<LoginScreen> createState() => _LoginScreenState();
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _usuarioCtrl    = TextEditingController();
-  final _contrasenaCtrl = TextEditingController();
+  final _userCtrl = TextEditingController();
+  final _passCtrl = TextEditingController();
 
-  bool   _isLoading   = false;
-  String _errorMsg    = '';
+  bool   _loading = false;
+  String _error   = '';
 
-  /// ========= helpers =========
-  InputDecoration _decoration(String label) => InputDecoration(
-    labelText: label,
+  /* ───────── estilos reutilizables ───────── */
+  InputDecoration _dec(String label) => InputDecoration(
+    labelText : label,
     labelStyle: TextStyle(color: AppColors.labelColor),
-    filled: true,
-    fillColor: AppColors.fieldFill,
-    border: const OutlineInputBorder(),
+    filled    : true,
+    fillColor : AppColors.fieldFill,
+    border    : const OutlineInputBorder(),
   );
 
+  /* ───────── login ───────── */
+  Future<void> _doLogin() async {
+    setState((){ _loading = true; _error = ''; });
+    final ok = await ApiService.login(
+      _userCtrl.text.trim(),
+      _passCtrl.text.trim(),
+      await DeviceUtils.getDeviceHash(),
+    );
 
-  Future<void> _login() async {
-    setState(() {
-      _isLoading  = true;
-      _errorMsg   = '';
-    });
-
-    final usuario      = _usuarioCtrl.text.trim();
-    final contrasena   = _contrasenaCtrl.text.trim();
-    final deviceHash   = await DeviceUtils.getDeviceHash();
-
-    try {
-      final res = await http.post(
-        Uri.parse('http://192.168.1.7:3000/api/login'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'usuario'          : usuario,
-          'contrasena'       : contrasena,
-          'dispositivo_hash' : deviceHash,
-        }),
-      );
-
-      final data = jsonDecode(res.body);
-
-      if (res.statusCode == 200 && data['success'] == true) {
-        // ✨ feedback
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('✅ Bienvenido, ${data['usuario']}')),
-          );
-          // Navegar a la pantalla principal
-          Navigator.pushReplacementNamed(context, '/home');
-        }
-      } else {
-        _errorMsg = data['mensaje'] ?? 'Credenciales inválidas';
-      }
-    } catch (_) {
-      _errorMsg = '❌ Error de red o servidor';
+    if (ok && mounted) {
+      Navigator.pushReplacementNamed(context, '/home');
+    } else {
+      setState(() => _error = 'Credenciales inválidas');
     }
-
-    if (mounted) {
-      setState(() => _isLoading = false);
-    }
+    if (mounted) setState(() => _loading = false);
   }
 
-  /// ========= UI =========
+  /* ───────── UI ───────── */
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 32.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text('Iniciar Sesión',
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.primaryColor,
-                  )),
-              const SizedBox(height: 32),
+  Widget build(BuildContext context) => Scaffold(
+    backgroundColor: AppColors.background,
+    body: Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 32),
+        child: Column(
+          children: [
+            Text('Iniciar Sesión',
+              style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold,
+                               color: AppColors.primaryColor)),
+            const SizedBox(height: 32),
 
-              // ── Usuario ──────────────────────────────
-              TextField(
-                controller: _usuarioCtrl,
-                style: const TextStyle(color: Colors.white),
-                decoration: _decoration('Usuario o teléfono'),
-              ),
-              const SizedBox(height: 16),
+            TextField(controller:_userCtrl,  decoration:_dec('Usuario o teléfono'),
+                      style: const TextStyle(color: Colors.white)),
+            const SizedBox(height: 16),
+            TextField(controller:_passCtrl,  decoration:_dec('Contraseña'),
+                      obscureText:true, style: const TextStyle(color: Colors.white)),
+            const SizedBox(height: 24),
 
-              // ── Contraseña ──────────────────────────
-              TextField(
-                controller: _contrasenaCtrl,
-                obscureText: true,
-                style: const TextStyle(color: Colors.white),
-                decoration: _decoration('Contraseña'),
-              ),
-              const SizedBox(height: 24),
-
-              // ── Botón ───────────────────────────────
-              _isLoading
-                  ? const CircularProgressIndicator()
-                  : ElevatedButton(
-                onPressed: _login,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryColor,
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 50, vertical: 15),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10)),
+            _loading
+              ? const CircularProgressIndicator()
+              : ElevatedButton(
+                  onPressed: _doLogin,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryColor,
+                    padding: const EdgeInsets.symmetric(horizontal:50, vertical:15),
+                    shape : RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  child: const Text('Entrar'),
                 ),
-                child: const Text('Entrar'),
-              ),
 
-              // ── Registro ────────────────────────────
-              const SizedBox(height: 12),
-              TextButton(
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const RegisterScreen()),
-                ),
-                child: const Text(
-                  '¿No tienes cuenta? Regístrate aquí',
-                  style: TextStyle(color: Colors.blueAccent),
-                ),
-              ),
+            const SizedBox(height: 12),
+            TextButton(
+              onPressed: () => Navigator.push(
+                context, MaterialPageRoute(builder: (_) => const RegisterScreen())),
+              child: const Text('¿No tienes cuenta? Regístrate aquí',
+                                style: TextStyle(color: Colors.blueAccent)),
+            ),
 
-              // ── Error ───────────────────────────────
-              if (_errorMsg.isNotEmpty) ...[
-                const SizedBox(height: 20),
-                Text(_errorMsg, style: const TextStyle(color: Colors.red)),
-              ],
+            if (_error.isNotEmpty) ...[
+              const SizedBox(height: 20),
+              Text(_error, style: const TextStyle(color: Colors.red)),
             ],
-          ),
+          ],
         ),
       ),
-    );
-  }
+    ),
+  );
 }

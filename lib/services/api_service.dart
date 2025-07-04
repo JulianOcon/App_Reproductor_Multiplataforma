@@ -1,81 +1,63 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
 
+import '../core/app_config.dart';
+import '../core/auth_store.dart';
 import '../models/video.dart';
 import '../models/mp3.dart';
 
 class ApiService {
-  static const String _base = 'http://192.168.1.7:3000/api';
-
-  /* ─────────── Helpers ─────────── */
-
-  static Future<SharedPreferences> _prefs() =>
-      SharedPreferences.getInstance();
-
-  static Future<String> _token() async =>
-      (await _prefs()).getString('token') ?? '';
-
-  static Map<String, String> _authHeaders(String token) =>
-      {'Authorization': 'Bearer $token'};
-
-  /* ─────────── Login ─────────── */
-
+  /* ───────── login ───────── */
   static Future<bool> login(
-      String usuario, String contrasena, String dispositivoHash) async {
-    final res = await http.post(
-      Uri.parse('$_base/login'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'usuario': usuario,
-        'contrasena': contrasena,
-        'dispositivo_hash': dispositivoHash,
-      }),
-    );
+      String usuario, String pass, String deviceHash) async {
+    final url = Uri.parse('${AppConfig.baseUrl}/api/login');
+
+    final res = await http.post(url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'usuario'          : usuario,
+          'contrasena'       : pass,
+          'dispositivo_hash' : deviceHash,
+        }));
 
     if (res.statusCode != 200) return false;
+
     final data = jsonDecode(res.body);
     if (data['success'] != true) return false;
 
-    final sp = await _prefs();
-    await sp.setString('token', data['token']);
-    await sp.setString('usuario', data['usuario']);
-    await sp.setString('tipo_usuario', data['tipo_usuario']);
+    await AuthStore.saveToken(data['token']);  // ← guardamos 30 días o hasta exp
+
     return true;
   }
 
-  static Future<void> logout() async {
-    final sp = await _prefs();
-    await sp.remove('token');
-    await sp.remove('usuario');
-    await sp.remove('tipo_usuario');
-  }
+  /* ───────── helpers ───────── */
+  static Map<String,String> _auth() =>
+      {'Authorization': 'Bearer ${AuthStore.token}'};
 
-  /* ─────────── Videos ─────────── */
-
+  /* ───────── endpoints ───────── */
   static Future<List<VideoItem>> getAllVideos() async {
     final res = await http.get(
-      Uri.parse('$_base/videos'),
-      headers: _authHeaders(await _token()),
+      Uri.parse('${AppConfig.baseUrl}/api/videos'),
+      headers: _auth(),
     );
     if (res.statusCode != 200) {
       throw Exception('Error ${res.statusCode} al obtener videos');
     }
-    final List<dynamic> jsonList = jsonDecode(res.body);
-    return jsonList.map((e) => VideoItem.fromJson(e)).toList();
+    return (jsonDecode(res.body) as List)
+        .map((e) => VideoItem.fromJson(e))
+        .toList();
   }
-
-  /* ─────────── MP3 ─────────── */
 
   static Future<List<Mp3Item>> getAllMp3() async {
     final res = await http.get(
-      Uri.parse('$_base/mp3'),
-      headers: _authHeaders(await _token()),
+      Uri.parse('${AppConfig.baseUrl}/api/mp3'),
+      headers: _auth(),
     );
     if (res.statusCode != 200) {
       throw Exception('Error ${res.statusCode} al obtener MP3');
     }
-    final List<dynamic> jsonList = jsonDecode(res.body);
-    return jsonList.map((e) => Mp3Item.fromJson(e)).toList();
+    return (jsonDecode(res.body) as List)
+        .map((e) => Mp3Item.fromJson(e))
+        .toList();
   }
 }
