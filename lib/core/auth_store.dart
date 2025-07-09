@@ -8,22 +8,21 @@ class AuthStore {
   static String? _token;
   static String? get token => _token;
 
-  /// Lee de disco y comprueba expiración.
   static Future<void> init() async {
     _sp = await SharedPreferences.getInstance();
     final t = _sp.getString(_kToken);
 
     if (t != null && !JwtDecoder.isExpired(t)) {
-      _token = t;
+      _token = t;                 // válido → seguimos conectados
     } else {
-      _token = null;
+      _token = null;              // expiró → forzamos login
       _sp.remove(_kToken);
     }
   }
 
-  static Future<void> saveToken(String token) async {
-    _token = token;
-    await _sp.setString(_kToken, token);
+  static Future<void> saveToken(String t) async {
+    _token = t;
+    await _sp.setString(_kToken, t);
   }
 
   static Future<void> logout() async {

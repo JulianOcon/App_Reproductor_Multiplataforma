@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../theme/colors.dart';
 import 'video_list_screen.dart';
 import 'mp3_list_screen.dart';
+import 'player/favorites_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -16,6 +17,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final _pages = const [
     VideoListScreen(),
     Mp3ListScreen(),
+    FavoritesScreen(),
   ];
 
   @override
@@ -36,6 +38,10 @@ class _HomeScreenState extends State<HomeScreen> {
           BottomNavigationBarItem(
             icon: Icon(Icons.music_note_outlined),
             label: 'MP3',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.favorite_border),
+            label: 'Favoritos',
           ),
         ],
       ),

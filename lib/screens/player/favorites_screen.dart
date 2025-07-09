@@ -1,72 +1,34 @@
 import 'package:flutter/material.dart';
 
+import '../../core/favorites_store.dart';
 import '../../models/video.dart';
-import '../../services/api_service.dart';
 import '../../theme/colors.dart';
-import 'player/video_player_screen.dart';
+import 'video_player_screen.dart';
 
-class VideoListScreen extends StatefulWidget {
-  const VideoListScreen({super.key});
-
-  @override
-  State<VideoListScreen> createState() => _VideoListScreenState();
-}
-
-class _VideoListScreenState extends State<VideoListScreen> {
-  late Future<List<VideoItem>> _futureVideos;
-
-  @override
-  void initState() {
-    super.initState();
-    _futureVideos = ApiService.getAllVideos();
-  }
-
-  Future<void> _refresh() async {
-    setState(() {
-      _futureVideos = ApiService.getAllVideos();
-    });
-  }
+class FavoritesScreen extends StatelessWidget {
+  const FavoritesScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final favorites = FavoritesStore.all;
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Videos', style: TextStyle(color: Colors.white)),
+        title: const Text('Favoritos', style: TextStyle(color: Colors.white)),
         backgroundColor: AppColors.primaryColor,
       ),
-      body: RefreshIndicator(
-        color: AppColors.primaryColor,
-        onRefresh: _refresh,
-        child: FutureBuilder<List<VideoItem>>(
-          future: _futureVideos,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            if (snapshot.hasError) {
-              return Center(
-                child: Text(
-                  'Error: ${snapshot.error}',
-                  style: const TextStyle(color: Colors.white),
-                ),
-              );
-            }
-            final videos = snapshot.data ?? [];
-            if (videos.isEmpty) {
-              return const Center(
-                child: Text('No se encontraron videos',
-                    style: TextStyle(color: Colors.white)),
-              );
-            }
-
-            return ListView.separated(
-              padding:
-                  const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-              itemCount: videos.length,
+      body: favorites.isEmpty
+          ? const Center(
+              child: Text('No tienes videos marcados como favoritos.',
+                  style: TextStyle(color: Colors.white70)),
+            )
+          : ListView.separated(
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+              itemCount: favorites.length,
               separatorBuilder: (_, __) => const SizedBox(height: 12),
               itemBuilder: (_, i) {
-                final v = videos[i];
+                final v = favorites[i];
                 return GestureDetector(
                   onTap: () {
                     Navigator.push(
@@ -98,10 +60,9 @@ class _VideoListScreenState extends State<VideoListScreen> {
                           child: Text(
                             v.title,
                             style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -111,10 +72,7 @@ class _VideoListScreenState extends State<VideoListScreen> {
                   ),
                 );
               },
-            );
-          },
-        ),
-      ),
+            ),
     );
   }
 }
