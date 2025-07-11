@@ -1,7 +1,8 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import '../theme/colors.dart';
+import '../models/mp3.dart';
+import '../services/api_service.dart';
+import 'player/mp3_player_screen.dart';
 
 class Mp3ListScreen extends StatefulWidget {
   const Mp3ListScreen({super.key});
@@ -11,9 +12,8 @@ class Mp3ListScreen extends StatefulWidget {
 }
 
 class _Mp3ListScreenState extends State<Mp3ListScreen> {
-  final _host = 'http://192.168.1.2:3000';
-  bool   _loading = true;
-  List<dynamic> _songs = [];
+  bool _loading = true;
+  List<Mp3Item> _mp3List = [];
   String _err = '';
 
   @override
@@ -23,17 +23,15 @@ class _Mp3ListScreenState extends State<Mp3ListScreen> {
   }
 
   Future<void> _fetchMp3() async {
-    setState(() { _loading = true; _err = ''; });
+    setState(() {
+      _loading = true;
+      _err = '';
+    });
     try {
-      final res  = await http.get(Uri.parse('$_host/api/mp3'));
-      final data = jsonDecode(res.body);
-      if (res.statusCode == 200) {
-        _songs = data as List;
-      } else {
-        _err = data['mensaje'] ?? 'Error general';
-      }
-    } catch (_) {
-      _err = 'Error de red';
+      final items = await ApiService.getAllMp3();
+      _mp3List = items;
+    } catch (e) {
+      _err = 'Error: $e';
     }
     if (mounted) setState(() => _loading = false);
   }
@@ -43,6 +41,7 @@ class _Mp3ListScreenState extends State<Mp3ListScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('MP3'),
+        backgroundColor: AppColors.primaryColor,
         actions: [
           IconButton(icon: const Icon(Icons.refresh), onPressed: _fetchMp3),
         ],
@@ -50,19 +49,19 @@ class _Mp3ListScreenState extends State<Mp3ListScreen> {
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _err.isNotEmpty
-              ? Center(child: Text(_err))
+              ? Center(child: Text(_err, style: const TextStyle(color: Colors.white)))
               : ListView.builder(
                   padding: const EdgeInsets.all(8),
-                  itemCount: _songs.length,
+                  itemCount: _mp3List.length,
                   itemBuilder: (_, i) {
-                    final s = _songs[i];
+                    final s = _mp3List[i];
                     return Card(
                       color: const Color(0xFF1C1C1C),
                       margin: const EdgeInsets.only(bottom: 8),
                       child: ListTile(
-                        leading: s['cover'] != null
+                        leading: s.cover != null
                             ? Image.network(
-                                s['cover']!,
+                                s.cover!,
                                 width: 56,
                                 height: 56,
                                 fit: BoxFit.cover,
@@ -70,15 +69,22 @@ class _Mp3ListScreenState extends State<Mp3ListScreen> {
                             : const Icon(Icons.music_note,
                                 color: Colors.white, size: 40),
                         title: Text(
-                          s['titulo'],
+                          s.titulo,
                           style: const TextStyle(color: Colors.white),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
-                        trailing:
-                            const Icon(Icons.play_arrow, color: Colors.white),
+                        trailing: const Icon(Icons.play_arrow, color: Colors.white),
                         onTap: () {
-                          // TODO: navegar a Mp3PlayerScreen
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => Mp3PlayerScreen(
+                                playlist: _mp3List,
+                                initialIndex: i,
+                              ),
+                            ),
+                          );
                         },
                       ),
                     );

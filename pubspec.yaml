@@ -27,6 +27,9 @@ dependencies:
   video_player: ^2.10.0   # ⬅️  versión reciente con fixes de progreso
   chewie:       ^1.12.1   # ⬅️  compatible con video_player ≥2.9
 
+  just_audio: ^0.10.4
+  rxdart: ^0.28.0
+
   cupertino_icons: ^1.0.8
 
 dev_dependencies:
