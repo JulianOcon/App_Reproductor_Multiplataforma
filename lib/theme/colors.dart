@@ -18,6 +18,12 @@ class AppColors {
   /// Relleno oscuro de los campos de texto
   static const Color fieldFill  = Color(0xFF1E1E1E);
 
+  /// Rojo profundo estilo Persona 5
+  static const Color deepRed = Color(0xFFB00020);
+
+  /// Fondo oscuro para contrastar con el arte
+  static const Color darkBackground = Color(0xFF1C1C1E);
+
   /* --- alias por compatibilidad --- */
   static const Color accentColor      = secondaryColor;
   static const Color backgroundColor  = background;
